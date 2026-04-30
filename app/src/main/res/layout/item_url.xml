@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="#FFFFFF"
+    android:paddingLeft="16dp"
+    android:paddingRight="8dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:gravity="center_vertical"
+    android:layout_marginLeft="12dp"
+    android:layout_marginRight="12dp">
+
+    <!-- Status indicator: spinner OR symbol -->
+    <FrameLayout
+        android:layout_width="32dp"
+        android:layout_height="32dp">
+
+        <ProgressBar
+            android:id="@+id/progressUrl"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="–"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center"/>
+
+    </FrameLayout>
+
+    <!-- URL + meta + error -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="4dp">
+
+        <TextView
+            android:id="@+id/tvUrl"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="#212121"
+            android:ellipsize="end"
+            android:maxLines="1"/>
+
+        <TextView
+            android:id="@+id/tvMeta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:layout_marginTop="2dp"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/tvError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#D32F2F"
+            android:layout_marginTop="4dp"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+    <!-- Delete URL button -->
+    <Button
+        android:id="@+id/btnDeleteUrl"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:text="✕"
+        android:textColor="#BDBDBD"
+        android:textSize="13sp"
+        android:textAllCaps="false"
+        android:background="@android:color/transparent"
+        android:padding="0dp"/>
+
+</LinearLayout>

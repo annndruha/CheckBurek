@@ -1,97 +1,156 @@
 package com.example.whitelistcheck
 
 import android.os.Bundle
+import android.text.InputType
+import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import kotlinx.coroutines.*
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
 
-    private val client = OkHttpClient.Builder()
-        .callTimeout(java.time.Duration.ofSeconds(10))
-        .build()
+    private lateinit var storage: StorageManager
+    private lateinit var adapter: NetworkListAdapter
+    private val checker = NetworkChecker()
+    private var groups: MutableList<UrlGroup> = mutableListOf()
 
-    private val whitelistUrls = listOf(
-        "https://ya.ru",
-        "https://dzen.ru",
-        "https://max.ru",
-        "https://vk.com",
-        "https://2gis.ru",
-        "https://sberbank.ru"
-    )
-
-    private val nonWhitelistUrls = listOf(
-        "https://store.steampowered.com",
-        "https://habr.com",
-        "https://ru.wikipedia.org"
-    )
+    // SupervisorJob so one failing coroutine doesn't cancel others
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val btn = findViewById<android.widget.Button>(R.id.btnCheck)
-        val tv = findViewById<android.widget.TextView>(R.id.tvResult)
+        storage = StorageManager(this)
+        groups = storage.loadGroups()
 
-        btn.setOnClickListener {
-            tv.text = "Проверка..."
-            CoroutineScope(Dispatchers.IO).launch {
-                val report = checkNetwork()
-                withContext(Dispatchers.Main) {
-                    tv.text = report
-                }
-            }
-        }
-    }
-
-    private suspend fun checkNetwork(): String {
-        val sb = StringBuilder()
-
-        var whitelistOk = true
-        var nonWhitelistBlocked = false
-
-        sb.append("WHITE LIST:\n")
-        for (url in whitelistUrls) {
-            val ok = ping(url)
-            whitelistOk = whitelistOk && ok
-            sb.append("$url -> ${status(ok)}\n")
-        }
-
-        sb.append("\nNON-WHITE LIST:\n")
-        for (url in nonWhitelistUrls) {
-            val ok = ping(url)
-            if (!ok) nonWhitelistBlocked = true
-            sb.append("$url -> ${status(ok)}\n")
-        }
-
-        sb.append("\nАГРЕГИРОВАННЫЙ СТАТУС:\n")
-        sb.append(
-            if (whitelistOk && nonWhitelistBlocked)
-                "УСТРОЙСТВО В СЕТИ С БЕЛЫМИ СПИСКАМИ"
-            else
-                "ОБЫЧНАЯ СЕТЬ ИЛИ НЕТ ДОСТУПА"
+        adapter = NetworkListAdapter(
+            onAddGroup   = ::showAddGroupDialog,
+            onDeleteGroup = ::deleteGroup,
+            onRenameGroup = ::renameGroup,
+            onAddUrl     = ::showAddUrlDialog,
+            onDeleteUrl  = ::deleteUrl,
+            onCheckGroup = ::checkGroup,
         )
 
-        return sb.toString()
+        findViewById<RecyclerView>(R.id.rvMain).apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = this@MainActivity.adapter
+        }
+        adapter.submitGroups(groups)
+
+        findViewById<ExtendedFloatingActionButton>(R.id.fabCheckAll)
+            .setOnClickListener { checkAll() }
     }
 
-    private fun ping(url: String): Boolean {
-        return try {
-            val request = Request.Builder()
-                .url(url)
-                .head()
-                .build()
+    override fun onStop() {
+        super.onStop()
+        // Persist any changes (also saved on every edit, but just in case)
+        storage.saveGroups(groups)
+    }
 
-            client.newCall(request).execute().use {
-                it.isSuccessful
+    override fun onDestroy() {
+        super.onDestroy()
+        scope.cancel()
+    }
+
+    // ──────────────────────────────────────────────
+    //  Group management
+    // ──────────────────────────────────────────────
+
+    private fun showAddGroupDialog() {
+        val et = EditText(this).apply {
+            hint = "Название списка"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            setPadding(48, 24, 48, 0)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Новый список")
+            .setView(et)
+            .setPositiveButton("Добавить") { _, _ ->
+                val name = et.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    groups.add(UrlGroup(name = name))
+                    persist()
+                }
             }
-        } catch (e: IOException) {
-            false
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun deleteGroup(group: UrlGroup) {
+        groups.remove(group)
+        persist()
+    }
+
+    private fun renameGroup(group: UrlGroup, name: String) {
+        group.name = name
+        persist()
+    }
+
+    // ──────────────────────────────────────────────
+    //  URL management
+    // ──────────────────────────────────────────────
+
+    private fun showAddUrlDialog(group: UrlGroup) {
+        val et = EditText(this).apply {
+            hint = "example.com"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setPadding(48, 24, 48, 0)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Добавить домен")
+            .setView(et)
+            .setPositiveButton("Добавить") { _, _ ->
+                var url = et.text.toString().trim()
+                if (url.isNotEmpty()) {
+                    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                        url = "https://$url"
+                    }
+                    group.urls.add(UrlEntry(url = url))
+                    persist()
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun deleteUrl(group: UrlGroup, entry: UrlEntry) {
+        group.urls.remove(entry)
+        persist()
+    }
+
+    // ──────────────────────────────────────────────
+    //  Network checking
+    // ──────────────────────────────────────────────
+
+    private fun checkGroup(group: UrlGroup) {
+        scope.launch {
+            group.urls.map { entry ->
+                async(Dispatchers.IO) {
+                    entry.state = CheckState.Checking
+                    withContext(Dispatchers.Main) { adapter.updateEntry(entry) }
+
+                    entry.state = checker.check(entry.url)
+                    withContext(Dispatchers.Main) { adapter.updateEntry(entry) }
+                }
+            }.awaitAll()
         }
     }
 
-    private fun status(ok: Boolean) =
-        if (ok) "ДОСТУПЕН" else "НЕДОСТУПЕН"
+    private fun checkAll() {
+        groups.forEach { checkGroup(it) }
+    }
+
+    // ──────────────────────────────────────────────
+    //  Helpers
+    // ──────────────────────────────────────────────
+
+    private fun persist() {
+        adapter.submitGroups(groups)
+        storage.saveGroups(groups)
+    }
 }

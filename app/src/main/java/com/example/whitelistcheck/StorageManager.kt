@@ -38,29 +38,32 @@ class StorageManager(context: Context) {
             name = "Белый список",
             urls = mutableListOf(
                 UrlEntry(url = "https://ya.ru"),
-                UrlEntry(url = "https://dzen.ru"),
-                UrlEntry(url = "https://vk.com"),
-                UrlEntry(url = "https://sberbank.ru"),
-                UrlEntry(url = "https://2gis.ru"),
                 UrlEntry(url = "https://max.ru"),
+                UrlEntry(url = "https://dzen.ru"),
+                UrlEntry(url = "https://tbank.ru"),
+                UrlEntry(url = "https://sberbank.ru"),
+
             )
         ),
         UrlGroup(
             id = UUID.randomUUID().toString(),
             name = "Незаблокированные ресурсы",
             urls = mutableListOf(
+                UrlEntry(url = "https://google.com"),
+                UrlEntry(url = "https://apple.com"),
+                UrlEntry(url = "https://microsoft.com"),
+                UrlEntry(url = "https://wikipedia.org"),
                 UrlEntry(url = "https://store.steampowered.com"),
-                UrlEntry(url = "https://habr.com"),
-                UrlEntry(url = "https://ru.wikipedia.org"),
             )
         ),
         UrlGroup(
             id = UUID.randomUUID().toString(),
             name = "Заблокированные ресурсы",
             urls = mutableListOf(
-                UrlEntry(url = "https://twitter.com"),
+                UrlEntry(url = "https://telegram.org"),
+                UrlEntry(url = "https://youtube.com"),
                 UrlEntry(url = "https://instagram.com"),
-                UrlEntry(url = "https://web.telegram.org"),
+                UrlEntry(url = "https://discord.com"),
             )
         )
     )

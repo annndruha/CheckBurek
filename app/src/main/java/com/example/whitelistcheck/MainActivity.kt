@@ -62,14 +62,20 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────────
 
     private fun showAddGroupDialog() {
-        val et = EditText(this).apply {
-            hint = "Название списка"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            setPadding(48, 24, 48, 0)
+        val et = EditText(this).apply { hint = "Название списка" }
+        val container = android.widget.FrameLayout(this).also {
+            val dp20 = (20 * resources.displayMetrics.density).toInt()
+            val dp8  = (8  * resources.displayMetrics.density).toInt()
+            val lp = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(dp20, dp8, dp20, 0) }
+            it.addView(et, lp)
         }
+
         AlertDialog.Builder(this)
             .setTitle("Новый список")
-            .setView(et)
+            .setView(container)
             .setPositiveButton("Добавить") { _, _ ->
                 val name = et.text.toString().trim()
                 if (name.isNotEmpty()) {
@@ -96,14 +102,19 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────────
 
     private fun showAddUrlDialog(group: UrlGroup) {
-        val et = EditText(this).apply {
-            hint = "example.com"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
-            setPadding(48, 24, 48, 0)
+        val et = EditText(this).apply { hint = "example.com" }
+        val container = android.widget.FrameLayout(this).also {
+            val dp20 = (20 * resources.displayMetrics.density).toInt()
+            val dp8  = (8  * resources.displayMetrics.density).toInt()
+            val lp = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(dp20, dp8, dp20, 0) }
+            it.addView(et, lp)
         }
         AlertDialog.Builder(this)
             .setTitle("Добавить домен")
-            .setView(et)
+            .setView(container)
             .setPositiveButton("Добавить") { _, _ ->
                 var url = et.text.toString().trim()
                 if (url.isNotEmpty()) {

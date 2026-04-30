@@ -118,11 +118,19 @@ class NetworkListAdapter(
             btnEdit.setOnClickListener {
                 val et = EditText(itemView.context).apply {
                     setText(group.name)
-                    setPadding(48, 24, 48, 0)
+                }
+                val container = android.widget.FrameLayout(itemView.context).also {
+                    val dp20 = (20 * itemView.context.resources.displayMetrics.density).toInt()
+                    val dp8  = (8  * itemView.context.resources.displayMetrics.density).toInt()
+                    val lp = android.widget.FrameLayout.LayoutParams(
+                        android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                        android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(dp20, dp8, dp20, 0) }
+                    it.addView(et, lp)
                 }
                 AlertDialog.Builder(itemView.context)
                     .setTitle("Переименовать список")
-                    .setView(et)
+                    .setView(container)
                     .setPositiveButton("Сохранить") { _, _ ->
                         val name = et.text.toString().trim()
                         if (name.isNotEmpty()) onRenameGroup(group, name)

@@ -18,7 +18,8 @@ class UrlEntry(
 
 sealed class CheckState {
     object Idle : CheckState()
-    object Checking : CheckState()
+    object Queued : CheckState()
+    data class Checking(val attempt: Int, val total: Int) : CheckState()
     data class Success(val code: Int, val timeMs: Long) : CheckState()
     data class Failure(val code: Int?, val error: String, val timeMs: Long) : CheckState()
 }

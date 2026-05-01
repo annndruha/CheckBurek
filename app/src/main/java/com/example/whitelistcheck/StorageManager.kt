@@ -25,18 +25,18 @@ class StorageManager(context: Context) {
         } else {
             getDefaultGroups()
         }
-        // Reset transient check states after deserialization
         groups.forEach { group ->
             group.urls.forEach { entry -> entry.state = CheckState.Idle }
         }
         return groups
     }
 
-    fun saveMethod(useGet: Boolean) {
-        prefs.edit().putBoolean("use_get", useGet).apply()
+    fun saveMethod(method: String) {
+        prefs.edit().putString("check_method", method).apply()
     }
 
-    fun loadMethod(): Boolean = prefs.getBoolean("use_get", false)
+    fun loadMethod(): String =
+        prefs.getString("check_method", NetworkChecker.METHOD_HEAD) ?: NetworkChecker.METHOD_HEAD
 
     private fun getDefaultGroups(): MutableList<UrlGroup> = mutableListOf(
         UrlGroup(
@@ -48,7 +48,6 @@ class StorageManager(context: Context) {
                 UrlEntry(url = "https://rzd.ru"),
                 UrlEntry(url = "https://dzen.ru"),
                 UrlEntry(url = "https://gosuslugi.ru"),
-
             )
         ),
         UrlGroup(

@@ -1,6 +1,6 @@
 package com.example.whitelistcheck
 
-import android.app.AlertDialog
+import android.content.res.ColorStateList
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.view.LayoutInflater
 import android.view.View
@@ -22,15 +22,21 @@ class NetworkListAdapter(
     private val onAddUrl: (UrlGroup) -> Unit,
     private val onDeleteUrl: (UrlGroup, UrlEntry) -> Unit,
     private val onCheckGroup: (UrlGroup) -> Unit,
-    private val onMethodChanged: (Boolean) -> Unit, // true = GET, false = HEAD
+    private val onMethodChanged: (String) -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
         const val TYPE_METHOD_SELECTOR = 0
-        const val TYPE_GROUP_HEADER = 1
-        const val TYPE_URL_ITEM = 2
-        const val TYPE_ADD_URL = 3
-        const val TYPE_ADD_GROUP = 4
+        const val TYPE_GROUP_HEADER    = 1
+        const val TYPE_URL_ITEM        = 2
+        const val TYPE_ADD_URL         = 3
+        const val TYPE_ADD_GROUP       = 4
+
+        val METHODS = listOf(
+            NetworkChecker.METHOD_HEAD,
+            NetworkChecker.METHOD_GET,
+            NetworkChecker.METHOD_PING,
+        )
     }
 
     sealed class ListItem {
@@ -42,16 +48,14 @@ class NetworkListAdapter(
     }
 
     private val items = mutableListOf<ListItem>()
-    var useGet: Boolean = false
+    var currentMethod: String = NetworkChecker.METHOD_HEAD
 
     fun submitGroups(groups: List<UrlGroup>) {
         items.clear()
         items.add(ListItem.MethodSelector)
         for (group in groups) {
             items.add(ListItem.GroupHeader(group))
-            for (entry in group.urls) {
-                items.add(ListItem.UrlItem(group, entry))
-            }
+            for (entry in group.urls) items.add(ListItem.UrlItem(group, entry))
             items.add(ListItem.AddUrl(group))
         }
         items.add(ListItem.AddGroup)
@@ -110,15 +114,23 @@ class NetworkListAdapter(
     inner class MethodSelectorVH(v: View) : RecyclerView.ViewHolder(v) {
         private val spinner: Spinner = v.findViewById(R.id.spinnerMethod)
 
+        init {
+            spinner.adapter = ArrayAdapter(
+                v.context,
+                android.R.layout.simple_spinner_item,
+                METHODS
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        }
+
         fun bind() {
-            // Avoid triggering onItemSelected during bind
-            spinner.setSelection(if (useGet) 1 else 0, false)
+            val index = METHODS.indexOf(currentMethod).coerceAtLeast(0)
+            spinner.setSelection(index, false)
             spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                    val get = pos == 1
-                    if (useGet != get) {
-                        useGet = get
-                        onMethodChanged(get)
+                    val method = METHODS[pos]
+                    if (currentMethod != method) {
+                        currentMethod = method
+                        onMethodChanged(method)
                     }
                 }
                 override fun onNothingSelected(parent: AdapterView<*>) = Unit
@@ -127,14 +139,13 @@ class NetworkListAdapter(
     }
 
     inner class GroupHeaderVH(v: View) : RecyclerView.ViewHolder(v) {
-        private val tvName: TextView      = v.findViewById(R.id.tvGroupName)
-        private val btnCheck: ImageButton = v.findViewById(R.id.btnCheckGroup)
-        private val btnEdit: ImageButton  = v.findViewById(R.id.btnEditGroup)
+        private val tvName: TextView       = v.findViewById(R.id.tvGroupName)
+        private val btnCheck: ImageButton  = v.findViewById(R.id.btnCheckGroup)
+        private val btnEdit: ImageButton   = v.findViewById(R.id.btnEditGroup)
         private val btnDelete: ImageButton = v.findViewById(R.id.btnDeleteGroup)
 
         fun bind(group: UrlGroup) {
             tvName.text = group.name
-
             btnCheck.setOnClickListener { onCheckGroup(group) }
 
             btnDelete.setOnClickListener {
@@ -178,10 +189,10 @@ class NetworkListAdapter(
         private val progress: ProgressBar = v.findViewById(R.id.progressUrl)
         private val btnDelete: Button     = v.findViewById(R.id.btnDeleteUrl)
 
-        // Resolve colors from resources once
         private val colorSuccess = v.context.getColor(R.color.md_success)
         private val colorError   = v.context.getColor(R.color.md_error)
         private val colorIdle    = v.context.getColor(R.color.md_idle)
+        private val colorPrimary = v.context.getColor(R.color.md_primary)
 
         fun bind(group: UrlGroup, entry: UrlEntry) {
             tvUrl.text = entry.url
@@ -205,10 +216,22 @@ class NetworkListAdapter(
                     tvMeta.visibility = View.GONE
                     tvError.visibility = View.GONE
                 }
-                is CheckState.Checking -> {
+                is CheckState.Queued -> {
+                    // Gray spinner — waiting in queue
+                    progress.indeterminateTintList = ColorStateList.valueOf(colorIdle)
                     progress.visibility = View.VISIBLE
                     tvStatus.visibility = View.GONE
-                    tvMeta.visibility = View.GONE
+                    tvMeta.visibility = View.VISIBLE
+                    tvMeta.text = "В очереди..."
+                    tvError.visibility = View.GONE
+                }
+                is CheckState.Checking -> {
+                    // Colored spinner — actively running
+                    progress.indeterminateTintList = ColorStateList.valueOf(colorPrimary)
+                    progress.visibility = View.VISIBLE
+                    tvStatus.visibility = View.GONE
+                    tvMeta.visibility = View.VISIBLE
+                    tvMeta.text = "Попытка ${s.attempt}/${s.total}..."
                     tvError.visibility = View.GONE
                 }
                 is CheckState.Success -> {
@@ -217,7 +240,8 @@ class NetworkListAdapter(
                     tvStatus.text = "✓"
                     tvStatus.setTextColor(colorSuccess)
                     tvMeta.visibility = View.VISIBLE
-                    tvMeta.text = "${s.code} · ${s.timeMs} мс"
+                    val codeLabel = if (s.code == 0) "ICMP" else "${s.code}"
+                    tvMeta.text = "$codeLabel · ${s.timeMs} мс"
                     tvError.visibility = View.GONE
                 }
                 is CheckState.Failure -> {

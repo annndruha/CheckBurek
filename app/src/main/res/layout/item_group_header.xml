@@ -30,7 +30,7 @@
         android:id="@+id/btnCheckGroup"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:src="@android:drawable/ic_popup_sync"
+        android:src="@drawable/ic_cached"
         android:tint="@color/md_on_primary_container"
         android:background="@android:color/transparent"
         android:contentDescription="Проверить"

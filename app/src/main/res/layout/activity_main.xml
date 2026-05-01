@@ -26,7 +26,7 @@
         android:textSize="15sp"
         android:textStyle="bold"
         app:backgroundTint="@color/md_primary"
-        app:icon="@android:drawable/ic_popup_sync"
+        app:icon="@drawable/ic_cached"
         app:iconTint="@color/md_on_primary"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

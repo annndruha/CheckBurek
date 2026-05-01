@@ -3,12 +3,20 @@ package com.example.whitelistcheck
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
+import android.os.SystemClock
+import okhttp3.Call
+import okhttp3.EventListener
+import okhttp3.Protocol
+import okhttp3.Response
+import java.net.InetSocketAddress
+import java.net.Proxy
+
 
 class NetworkChecker {
     private val client = OkHttpClient.Builder()
-        .callTimeout(java.time.Duration.ofSeconds(10))
-        .connectTimeout(java.time.Duration.ofSeconds(8))
-        .readTimeout(java.time.Duration.ofSeconds(8))
+        .callTimeout(java.time.Duration.ofSeconds(5))
+        .connectTimeout(java.time.Duration.ofSeconds(5))
+        .readTimeout(java.time.Duration.ofSeconds(5))
         .followRedirects(true)
         .build()
 
@@ -40,29 +48,64 @@ class NetworkChecker {
         "Mozilla/5.0 (Linux; Android 12; SM-G973U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36",
     )
 
-    fun check(url: String): CheckState {
-        val start = System.currentTimeMillis()
-        return try {
-            val request = Request.Builder()
-                .url(url)
-                .head()
-                .header("User-Agent", userAgents.random())
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .build()
-            client.newCall(request).execute().use { response ->
-                val time = System.currentTimeMillis() - start
-                if (response.isSuccessful || response.code in 300..399) {
-                    CheckState.Success(response.code, time)
-                } else {
-                    CheckState.Failure(response.code, "HTTP ${response.code}: ${response.message}", time)
+    fun check(url: String, attempts: Int = 3): CheckState {
+        val times = mutableListOf<Long>()
+        var lastCode: Int? = null
+        var lastError: String? = null
+
+        repeat(attempts) {
+            val timing = mutableMapOf<String, Long>()
+            val listener = object : EventListener() {
+                override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
+                    timing["connectStart"] = SystemClock.elapsedRealtime()
+                }
+                override fun connectEnd(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy, protocol: Protocol?) {
+                    timing["connectEnd"] = SystemClock.elapsedRealtime()
+                }
+                override fun responseHeadersEnd(call: Call, response: Response) {
+                    timing["responseEnd"] = SystemClock.elapsedRealtime()
                 }
             }
-        } catch (e: IOException) {
-            val time = System.currentTimeMillis() - start
-            CheckState.Failure(null, e.message ?: "Ошибка соединения", time)
-        } catch (e: Exception) {
-            val time = System.currentTimeMillis() - start
-            CheckState.Failure(null, e.message ?: "Неизвестная ошибка", time)
+
+            val localClient = client.newBuilder()
+                .eventListener(listener)
+                .build()
+
+            val start = SystemClock.elapsedRealtime()
+            try {
+                val request = Request.Builder()
+                    .url(url)
+                    .head()
+                    .header("User-Agent", userAgents.random())
+                    .build()
+
+                localClient.newCall(request).execute().use { response ->
+                    lastCode = response.code
+                    // Берём время от начала connectStart до получения заголовков —
+                    // это и есть реальный RTT
+                    val rtt = if (timing.containsKey("connectStart") && timing.containsKey("responseEnd")) {
+                        timing["responseEnd"]!! - timing["connectStart"]!!
+                    } else {
+                        SystemClock.elapsedRealtime() - start
+                    }
+                    if (response.isSuccessful || response.code in 300..399) {
+                        times += rtt
+                    } else {
+                        lastError = "HTTP ${response.code}: ${response.message}"
+                    }
+                }
+            } catch (e: IOException) {
+                lastError = e.message ?: "Ошибка соединения"
+            }
+
+            Thread.sleep(200) // пауза между замерами
+        }
+
+        return if (times.isNotEmpty()) {
+            val median = times.sorted()[times.size / 2] // медиана стабильнее среднего
+            CheckState.Success(lastCode ?: 200, median)
+        } else {
+            CheckState.Failure(lastCode, lastError ?: "Ошибка соединения", 0)
         }
     }
 }

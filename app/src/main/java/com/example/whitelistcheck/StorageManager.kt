@@ -68,7 +68,6 @@ class StorageManager(context: Context) {
                 UrlEntry(url = "https://telegram.org"),
                 UrlEntry(url = "https://youtube.com"),
                 UrlEntry(url = "https://discord.com"),
-                UrlEntry(url = "https://facebook.com"),
                 UrlEntry(url = "https://instagram.com"),
             )
         )

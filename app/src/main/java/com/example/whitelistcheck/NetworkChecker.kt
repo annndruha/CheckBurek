@@ -43,38 +43,43 @@ class NetworkChecker {
     )
 
     private val client = OkHttpClient.Builder()
-        .callTimeout(java.time.Duration.ofSeconds(8))
-        .connectTimeout(java.time.Duration.ofSeconds(8))
-        .readTimeout(java.time.Duration.ofSeconds(8))
+        .callTimeout(java.time.Duration.ofSeconds(15))
+        .connectTimeout(java.time.Duration.ofSeconds(10))
+        .readTimeout(java.time.Duration.ofSeconds(5))
         .followRedirects(true)
         .build()
 
 
-//    suspend fun check(url: String, useGet: Boolean = false, attempts: Int = 3): CheckState = coroutineScope {
-//        val results = (1..attempts)
-//            .map { async(Dispatchers.IO) { singleAttempt(url, useGet) } }
-//            .awaitAll()
-//
-//        val successes = results.filterIsInstance<CheckState.Success>()
-//        if (successes.isNotEmpty()) {
-//            val median = successes.map { it.timeMs }.sorted()[successes.size / 2]
-//            CheckState.Success(successes.first().code, median)
-//        } else {
-//            results.filterIsInstance<CheckState.Failure>().firstOrNull()
-//                ?: CheckState.Failure(null, "Ошибка соединения", 0)
-//        }
-//    }
+    suspend fun check(url: String, useGet: Boolean = false, attempts: Int = 3): CheckState = coroutineScope {
+        val results = (1..attempts)
+            .map { async(Dispatchers.IO) { singleAttempt(url, useGet) } }
+            .awaitAll()
 
-    suspend fun check(url: String, useGet: Boolean = false, attempts: Int = 3): CheckState =
-        withContext(Dispatchers.IO) {
-            var lastResult: CheckState = CheckState.Failure(null, "Ошибка соединения", 0)
-            for (i in 1..attempts) {
-                val result = singleAttempt(url, useGet)
-                if (result is CheckState.Success) return@withContext result
-                lastResult = result
+        val successes = results.filterIsInstance<CheckState.Success>()
+        if (successes.isNotEmpty()) {
+            val sorted = successes.map { it.timeMs }.sorted()
+            val median = if (sorted.size % 2 == 1) {
+                sorted[sorted.size / 2]
+            } else {
+                (sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2
             }
-            lastResult
+            CheckState.Success(successes.first().code, median)
+        } else {
+            results.filterIsInstance<CheckState.Failure>().firstOrNull()
+                ?: CheckState.Failure(null, "Ошибка соединения", 0)
         }
+    }
+
+//    suspend fun check(url: String, useGet: Boolean = false, attempts: Int = 3): CheckState =
+//        withContext(Dispatchers.IO) {
+//            var lastResult: CheckState = CheckState.Failure(null, "Ошибка соединения", 0)
+//            for (i in 1..attempts) {
+//                val result = singleAttempt(url, useGet)
+//                if (result is CheckState.Success) return@withContext result
+//                lastResult = result
+//            }
+//            lastResult
+//        }
 
     private fun singleAttempt(url: String, useGet: Boolean): CheckState {
         val timing = mutableMapOf<String, Long>()

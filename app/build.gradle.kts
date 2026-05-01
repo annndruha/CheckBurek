@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.whitelistcheck"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "8.0.0"
+        versionCode = 4
+        versionName = "8.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

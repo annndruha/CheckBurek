@@ -32,6 +32,12 @@ class StorageManager(context: Context) {
         return groups
     }
 
+    fun saveMethod(useGet: Boolean) {
+        prefs.edit().putBoolean("use_get", useGet).apply()
+    }
+
+    fun loadMethod(): Boolean = prefs.getBoolean("use_get", false)
+
     private fun getDefaultGroups(): MutableList<UrlGroup> = mutableListOf(
         UrlGroup(
             id = UUID.randomUUID().toString(),

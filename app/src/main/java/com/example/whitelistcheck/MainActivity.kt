@@ -17,6 +17,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: NetworkListAdapter
     private val checker = NetworkChecker()
     private var groups: MutableList<UrlGroup> = mutableListOf()
+    private var useGet: Boolean = false
 
     // SupervisorJob so one failing coroutine doesn't cancel others
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -32,13 +33,20 @@ class MainActivity : AppCompatActivity() {
         groups = storage.loadGroups()
 
         adapter = NetworkListAdapter(
-            onAddGroup   = ::showAddGroupDialog,
+            onAddGroup    = ::showAddGroupDialog,
             onDeleteGroup = ::deleteGroup,
             onRenameGroup = ::renameGroup,
-            onAddUrl     = ::showAddUrlDialog,
-            onDeleteUrl  = ::deleteUrl,
-            onCheckGroup = ::checkGroup,
+            onAddUrl      = ::showAddUrlDialog,
+            onDeleteUrl   = ::deleteUrl,
+            onCheckGroup  = ::checkGroup,
+            onMethodChanged = { get ->
+                useGet = get
+                storage.saveMethod(get)
+            },
         )
+
+        useGet = storage.loadMethod()
+        adapter.useGet = useGet
 
         findViewById<RecyclerView>(R.id.rvMain).apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
@@ -150,7 +158,7 @@ class MainActivity : AppCompatActivity() {
                     entry.state = CheckState.Checking
                     withContext(Dispatchers.Main) { adapter.updateEntry(entry) }
 
-                    entry.state = checker.check(entry.url)
+                    entry.state = checker.check(entry.url, useGet)
                     withContext(Dispatchers.Main) { adapter.updateEntry(entry) }
                 }
             }.awaitAll()

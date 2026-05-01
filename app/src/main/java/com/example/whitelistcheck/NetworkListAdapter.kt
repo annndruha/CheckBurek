@@ -5,10 +5,13 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ProgressBar
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
@@ -19,16 +22,19 @@ class NetworkListAdapter(
     private val onAddUrl: (UrlGroup) -> Unit,
     private val onDeleteUrl: (UrlGroup, UrlEntry) -> Unit,
     private val onCheckGroup: (UrlGroup) -> Unit,
+    private val onMethodChanged: (Boolean) -> Unit, // true = GET, false = HEAD
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
-        const val TYPE_GROUP_HEADER = 0
-        const val TYPE_URL_ITEM = 1
-        const val TYPE_ADD_URL = 2
-        const val TYPE_ADD_GROUP = 3
+        const val TYPE_METHOD_SELECTOR = 0
+        const val TYPE_GROUP_HEADER = 1
+        const val TYPE_URL_ITEM = 2
+        const val TYPE_ADD_URL = 3
+        const val TYPE_ADD_GROUP = 4
     }
 
     sealed class ListItem {
+        object MethodSelector : ListItem()
         data class GroupHeader(val group: UrlGroup) : ListItem()
         data class UrlItem(val group: UrlGroup, val entry: UrlEntry) : ListItem()
         data class AddUrl(val group: UrlGroup) : ListItem()
@@ -36,9 +42,11 @@ class NetworkListAdapter(
     }
 
     private val items = mutableListOf<ListItem>()
+    var useGet: Boolean = false
 
     fun submitGroups(groups: List<UrlGroup>) {
         items.clear()
+        items.add(ListItem.MethodSelector)
         for (group in groups) {
             items.add(ListItem.GroupHeader(group))
             for (entry in group.urls) {
@@ -56,19 +64,21 @@ class NetworkListAdapter(
     }
 
     override fun getItemViewType(position: Int) = when (items[position]) {
-        is ListItem.GroupHeader -> TYPE_GROUP_HEADER
-        is ListItem.UrlItem    -> TYPE_URL_ITEM
-        is ListItem.AddUrl     -> TYPE_ADD_URL
-        is ListItem.AddGroup   -> TYPE_ADD_GROUP
+        is ListItem.MethodSelector -> TYPE_METHOD_SELECTOR
+        is ListItem.GroupHeader    -> TYPE_GROUP_HEADER
+        is ListItem.UrlItem        -> TYPE_URL_ITEM
+        is ListItem.AddUrl         -> TYPE_ADD_URL
+        is ListItem.AddGroup       -> TYPE_ADD_GROUP
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inf = LayoutInflater.from(parent.context)
         return when (viewType) {
-            TYPE_GROUP_HEADER -> GroupHeaderVH(inf.inflate(R.layout.item_group_header, parent, false))
-            TYPE_URL_ITEM     -> UrlItemVH(inf.inflate(R.layout.item_url, parent, false))
-            TYPE_ADD_URL      -> AddUrlVH(inf.inflate(R.layout.item_add_url, parent, false))
-            else              -> AddGroupVH(inf.inflate(R.layout.item_add_group, parent, false))
+            TYPE_METHOD_SELECTOR -> MethodSelectorVH(inf.inflate(R.layout.item_method_selector, parent, false))
+            TYPE_GROUP_HEADER    -> GroupHeaderVH(inf.inflate(R.layout.item_group_header, parent, false))
+            TYPE_URL_ITEM        -> UrlItemVH(inf.inflate(R.layout.item_url, parent, false))
+            TYPE_ADD_URL         -> AddUrlVH(inf.inflate(R.layout.item_add_url, parent, false))
+            else                 -> AddGroupVH(inf.inflate(R.layout.item_add_group, parent, false))
         }
     }
 
@@ -76,10 +86,11 @@ class NetworkListAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
-            is ListItem.GroupHeader -> (holder as GroupHeaderVH).bind(item.group)
-            is ListItem.UrlItem    -> (holder as UrlItemVH).bind(item.group, item.entry)
-            is ListItem.AddUrl     -> (holder as AddUrlVH).bind(item.group)
-            is ListItem.AddGroup   -> (holder as AddGroupVH).bind()
+            is ListItem.MethodSelector -> (holder as MethodSelectorVH).bind()
+            is ListItem.GroupHeader    -> (holder as GroupHeaderVH).bind(item.group)
+            is ListItem.UrlItem        -> (holder as UrlItemVH).bind(item.group, item.entry)
+            is ListItem.AddUrl         -> (holder as AddUrlVH).bind(item.group)
+            is ListItem.AddGroup       -> (holder as AddGroupVH).bind()
         }
     }
 
@@ -95,6 +106,25 @@ class NetworkListAdapter(
     // ──────────────────────────────────────────────
     //  VIEW HOLDERS
     // ──────────────────────────────────────────────
+
+    inner class MethodSelectorVH(v: View) : RecyclerView.ViewHolder(v) {
+        private val spinner: Spinner = v.findViewById(R.id.spinnerMethod)
+
+        fun bind() {
+            // Avoid triggering onItemSelected during bind
+            spinner.setSelection(if (useGet) 1 else 0, false)
+            spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
+                    val get = pos == 1
+                    if (useGet != get) {
+                        useGet = get
+                        onMethodChanged(get)
+                    }
+                }
+                override fun onNothingSelected(parent: AdapterView<*>) = Unit
+            }
+        }
+    }
 
     inner class GroupHeaderVH(v: View) : RecyclerView.ViewHolder(v) {
         private val tvName: TextView      = v.findViewById(R.id.tvGroupName)

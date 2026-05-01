@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingLeft="18dp"
+    android:paddingRight="18dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Метод проверки"
+        android:textSize="14sp"
+        android:textColor="@color/md_on_surface_variant"
+        android:textStyle="bold"/>
+
+    <Spinner
+        android:id="@+id/spinnerMethod"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:entries="@array/check_methods"
+        android:textColor="@color/md_on_surface"
+        android:backgroundTint="@color/md_primary"/>
+
+</LinearLayout>

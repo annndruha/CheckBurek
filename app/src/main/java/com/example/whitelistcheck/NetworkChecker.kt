@@ -50,9 +50,9 @@ class NetworkChecker {
         .build()
 
 
-    suspend fun check(url: String, attempts: Int = 3): CheckState = coroutineScope {
+    suspend fun check(url: String, useGet: Boolean = false, attempts: Int = 3): CheckState = coroutineScope {
         val results = (1..attempts)
-            .map { async(Dispatchers.IO) { singleAttempt(url) } }
+            .map { async(Dispatchers.IO) { singleAttempt(url, useGet) } }
             .awaitAll()
 
         val successes = results.filterIsInstance<CheckState.Success>()
@@ -65,7 +65,7 @@ class NetworkChecker {
         }
     }
 
-    private fun singleAttempt(url: String): CheckState {
+    private fun singleAttempt(url: String, useGet: Boolean): CheckState {
         val timing = mutableMapOf<String, Long>()
         val listener = object : EventListener() {
             override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
@@ -83,13 +83,13 @@ class NetworkChecker {
         val start = SystemClock.elapsedRealtime()
 
         return try {
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(url)
-                .head()
                 .header("User-Agent", userAgents.random())
-                .build()
 
-            localClient.newCall(request).execute().use { response ->
+            if (useGet) requestBuilder.get() else requestBuilder.head()
+
+            localClient.newCall(requestBuilder.build()).execute().use { response ->
                 val rtt = if (timing.containsKey("connectStart") && timing.containsKey("responseEnd")) {
                     timing["responseEnd"]!! - timing["connectStart"]!!
                 } else {

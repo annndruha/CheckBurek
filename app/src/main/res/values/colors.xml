@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Backgrounds -->
+    <color name="md_background">#0E0E16</color>
+    <color name="md_surface">#1A1A24</color>
+    <color name="md_surface_variant">#26263A</color>
+
+    <!-- Primary — electric indigo-blue -->
+    <color name="md_primary">#A0B4FF</color>
+    <color name="md_on_primary">#001060</color>
+    <color name="md_primary_container">#1C2F7A</color>
+    <color name="md_on_primary_container">#DCE1FF</color>
+
+    <!-- Text -->
+    <color name="md_on_surface">#E8E6F0</color>
+    <color name="md_on_surface_variant">#908FA8</color>
+
+    <!-- Semantic -->
+    <color name="md_success">#6FCF97</color>
+    <color name="md_error">#FF6B6B</color>
+    <color name="md_idle">#555570</color>
 </resources>

@@ -5,16 +5,16 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:gravity="center_horizontal"
-    android:paddingTop="20dp"
+    android:paddingTop="24dp"
     android:paddingBottom="16dp">
 
     <Button
         android:id="@+id/btnAddGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="+ Добавить новый список"
+        android:text="+ Добавить список"
         android:textSize="14sp"
-        android:textColor="#1565C0"
+        android:textColor="@color/md_primary"
         android:textAllCaps="false"
         android:background="@android:color/transparent"/>
 

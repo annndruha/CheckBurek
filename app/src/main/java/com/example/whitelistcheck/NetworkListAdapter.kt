@@ -81,7 +81,6 @@ class NetworkListAdapter(
         }
     }
 
-    // Partial bind for state updates only (avoids full rebind flicker)
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: List<Any>) {
         if (payloads.isNotEmpty() && holder is UrlItemVH) {
             val item = items[position] as? ListItem.UrlItem ?: return
@@ -96,10 +95,10 @@ class NetworkListAdapter(
     // ──────────────────────────────────────────────
 
     inner class GroupHeaderVH(v: View) : RecyclerView.ViewHolder(v) {
-        private val tvName: TextView   = v.findViewById(R.id.tvGroupName)
-        private val btnCheck: Button   = v.findViewById(R.id.btnCheckGroup)
-        private val btnEdit: Button    = v.findViewById(R.id.btnEditGroup)
-        private val btnDelete: Button  = v.findViewById(R.id.btnDeleteGroup)
+        private val tvName: TextView  = v.findViewById(R.id.tvGroupName)
+        private val btnCheck: Button  = v.findViewById(R.id.btnCheckGroup)
+        private val btnEdit: Button   = v.findViewById(R.id.btnEditGroup)
+        private val btnDelete: Button = v.findViewById(R.id.btnDeleteGroup)
 
         fun bind(group: UrlGroup) {
             tvName.text = group.name
@@ -116,12 +115,10 @@ class NetworkListAdapter(
             }
 
             btnEdit.setOnClickListener {
-                val et = EditText(itemView.context).apply {
-                    setText(group.name)
-                }
+                val et = EditText(itemView.context).apply { setText(group.name) }
+                val dp20 = (20 * itemView.context.resources.displayMetrics.density).toInt()
+                val dp8  = (8  * itemView.context.resources.displayMetrics.density).toInt()
                 val container = android.widget.FrameLayout(itemView.context).also {
-                    val dp20 = (20 * itemView.context.resources.displayMetrics.density).toInt()
-                    val dp8  = (8  * itemView.context.resources.displayMetrics.density).toInt()
                     val lp = android.widget.FrameLayout.LayoutParams(
                         android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
                         android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
@@ -142,25 +139,28 @@ class NetworkListAdapter(
     }
 
     inner class UrlItemVH(v: View) : RecyclerView.ViewHolder(v) {
-        private val tvUrl: TextView    = v.findViewById(R.id.tvUrl)
-        private val tvStatus: TextView = v.findViewById(R.id.tvStatus)
-        private val tvMeta: TextView   = v.findViewById(R.id.tvMeta)
-        private val tvError: TextView  = v.findViewById(R.id.tvError)
+        private val tvUrl: TextView       = v.findViewById(R.id.tvUrl)
+        private val tvStatus: TextView    = v.findViewById(R.id.tvStatus)
+        private val tvMeta: TextView      = v.findViewById(R.id.tvMeta)
+        private val tvError: TextView     = v.findViewById(R.id.tvError)
         private val progress: ProgressBar = v.findViewById(R.id.progressUrl)
-        private val btnDelete: Button  = v.findViewById(R.id.btnDeleteUrl)
+        private val btnDelete: Button     = v.findViewById(R.id.btnDeleteUrl)
+
+        // Resolve colors from resources once
+        private val colorSuccess = v.context.getColor(R.color.md_success)
+        private val colorError   = v.context.getColor(R.color.md_error)
+        private val colorIdle    = v.context.getColor(R.color.md_idle)
 
         fun bind(group: UrlGroup, entry: UrlEntry) {
             tvUrl.text = entry.url
                 .removePrefix("https://")
                 .removePrefix("http://")
                 .trimEnd('/')
-
             btnDelete.setOnClickListener { onDeleteUrl(group, entry) }
             bindState(entry)
         }
 
         fun bindState(entry: UrlEntry) {
-            // Reset tap listener
             itemView.setOnClickListener(null)
             itemView.isClickable = false
 
@@ -169,7 +169,7 @@ class NetworkListAdapter(
                     progress.visibility = View.GONE
                     tvStatus.visibility = View.VISIBLE
                     tvStatus.text = "–"
-                    tvStatus.setTextColor(0xFF9E9E9E.toInt())
+                    tvStatus.setTextColor(colorIdle)
                     tvMeta.visibility = View.GONE
                     tvError.visibility = View.GONE
                 }
@@ -183,7 +183,7 @@ class NetworkListAdapter(
                     progress.visibility = View.GONE
                     tvStatus.visibility = View.VISIBLE
                     tvStatus.text = "✓"
-                    tvStatus.setTextColor(0xFF388E3C.toInt())
+                    tvStatus.setTextColor(colorSuccess)
                     tvMeta.visibility = View.VISIBLE
                     tvMeta.text = "${s.code} · ${s.timeMs} мс"
                     tvError.visibility = View.GONE
@@ -192,11 +192,10 @@ class NetworkListAdapter(
                     progress.visibility = View.GONE
                     tvStatus.visibility = View.VISIBLE
                     tvStatus.text = "✗"
-                    tvStatus.setTextColor(0xFFD32F2F.toInt())
+                    tvStatus.setTextColor(colorError)
                     tvMeta.visibility = View.VISIBLE
                     val codeStr = s.code?.toString() ?: "–"
                     tvMeta.text = "$codeStr · ${s.timeMs} мс  ▾ подробнее"
-                    // Error text hidden by default, toggle on tap
                     tvError.visibility = View.GONE
                     tvError.text = s.error
                     itemView.isClickable = true
@@ -211,15 +210,11 @@ class NetworkListAdapter(
 
     inner class AddUrlVH(v: View) : RecyclerView.ViewHolder(v) {
         private val btn: Button = v.findViewById(R.id.btnAddUrl)
-        fun bind(group: UrlGroup) {
-            btn.setOnClickListener { onAddUrl(group) }
-        }
+        fun bind(group: UrlGroup) { btn.setOnClickListener { onAddUrl(group) } }
     }
 
     inner class AddGroupVH(v: View) : RecyclerView.ViewHolder(v) {
         private val btn: Button = v.findViewById(R.id.btnAddGroup)
-        fun bind() {
-            btn.setOnClickListener { onAddGroup() }
-        }
+        fun bind() { btn.setOnClickListener { onAddGroup() } }
     }
 }

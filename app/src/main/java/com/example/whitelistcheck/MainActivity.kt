@@ -21,6 +21,9 @@ class MainActivity : AppCompatActivity() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        window.attributes = window.attributes.also {
+            it.screenBrightness = -1f
+        }
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 

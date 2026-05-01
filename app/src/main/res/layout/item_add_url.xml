@@ -4,14 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:background="#FFFFFF"
-    android:paddingLeft="56dp"
+    android:background="@drawable/bg_add_url"
+    android:paddingLeft="54dp"
     android:paddingRight="16dp"
     android:paddingTop="2dp"
-    android:paddingBottom="8dp"
-    android:layout_marginLeft="12dp"
-    android:layout_marginRight="12dp"
-    android:layout_marginBottom="4dp">
+    android:paddingBottom="10dp"
+    android:layout_marginLeft="14dp"
+    android:layout_marginRight="14dp">
 
     <Button
         android:id="@+id/btnAddUrl"
@@ -19,7 +18,7 @@
         android:layout_height="wrap_content"
         android:text="+ Добавить домен"
         android:textSize="13sp"
-        android:textColor="#1565C0"
+        android:textColor="@color/md_primary"
         android:textAllCaps="false"
         android:background="@android:color/transparent"
         android:paddingLeft="0dp"

@@ -14,9 +14,9 @@ import java.net.Proxy
 
 class NetworkChecker {
     private val client = OkHttpClient.Builder()
-        .callTimeout(java.time.Duration.ofSeconds(3))
-        .connectTimeout(java.time.Duration.ofSeconds(3))
-        .readTimeout(java.time.Duration.ofSeconds(3))
+        .callTimeout(java.time.Duration.ofSeconds(8))
+        .connectTimeout(java.time.Duration.ofSeconds(8))
+        .readTimeout(java.time.Duration.ofSeconds(8))
         .followRedirects(true)
         .build()
 
@@ -104,7 +104,7 @@ class NetworkChecker {
                 lastError = e.message ?: "Ошибка соединения"
             }
 
-            Thread.sleep(200) // пауза между замерами
+            Thread.sleep(100) // пауза между замерами
         }
 
         return if (times.isNotEmpty()) {

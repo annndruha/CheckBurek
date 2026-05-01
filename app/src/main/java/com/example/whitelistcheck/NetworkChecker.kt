@@ -43,9 +43,9 @@ class NetworkChecker {
     )
 
     private val client = OkHttpClient.Builder()
-        .callTimeout(java.time.Duration.ofSeconds(12))
-        .connectTimeout(java.time.Duration.ofSeconds(12))
-        .readTimeout(java.time.Duration.ofSeconds(12))
+        .callTimeout(java.time.Duration.ofSeconds(10))
+        .connectTimeout(java.time.Duration.ofSeconds(10))
+        .readTimeout(java.time.Duration.ofSeconds(10))
         .followRedirects(true)
         .build()
 

@@ -1,6 +1,7 @@
 package com.example.whitelistcheck
 
 import android.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -107,7 +108,7 @@ class NetworkListAdapter(
             btnCheck.setOnClickListener { onCheckGroup(group) }
 
             btnDelete.setOnClickListener {
-                AlertDialog.Builder(itemView.context)
+                MaterialAlertDialogBuilder(itemView.context)
                     .setTitle("Удалить список?")
                     .setMessage("«${group.name}» будет удалён безвозвратно.")
                     .setPositiveButton("Удалить") { _, _ -> onDeleteGroup(group) }
@@ -126,7 +127,7 @@ class NetworkListAdapter(
                     ).apply { setMargins(dp20, dp8, dp20, 0) }
                     it.addView(et, lp)
                 }
-                AlertDialog.Builder(itemView.context)
+                MaterialAlertDialogBuilder(itemView.context)
                     .setTitle("Переименовать список")
                     .setView(container)
                     .setPositiveButton("Сохранить") { _, _ ->

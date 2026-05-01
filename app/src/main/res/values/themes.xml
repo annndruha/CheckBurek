@@ -12,5 +12,15 @@
         <item name="android:windowBackground">@color/md_background</item>
         <item name="android:statusBarColor">@color/md_background</item>
         <item name="android:navigationBarColor">@color/md_background</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.App.Dialog</item>
+    </style>
+
+    <style name="ThemeOverlay.App.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:background">@color/md_surface_variant</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
     </style>
 </resources>

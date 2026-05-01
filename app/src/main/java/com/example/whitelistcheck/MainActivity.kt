@@ -7,6 +7,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import kotlinx.coroutines.*
 
@@ -65,18 +66,12 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────────
 
     private fun showAddGroupDialog() {
-        val et = EditText(this).apply { hint = "Название списка" }
-        val container = android.widget.FrameLayout(this).also {
-            val dp20 = (20 * resources.displayMetrics.density).toInt()
-            val dp8  = (8  * resources.displayMetrics.density).toInt()
-            val lp = android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(dp20, dp8, dp20, 0) }
-            it.addView(et, lp)
+        val et = EditText(this).apply {
+            hint = "Название списка"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         }
-
-        AlertDialog.Builder(this)
+        val container = makeDialogContainer(et)
+        MaterialAlertDialogBuilder(this)
             .setTitle("Новый список")
             .setView(container)
             .setPositiveButton("Добавить") { _, _ ->
@@ -105,17 +100,12 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────────
 
     private fun showAddUrlDialog(group: UrlGroup) {
-        val et = EditText(this).apply { hint = "example.com" }
-        val container = android.widget.FrameLayout(this).also {
-            val dp20 = (20 * resources.displayMetrics.density).toInt()
-            val dp8  = (8  * resources.displayMetrics.density).toInt()
-            val lp = android.widget.FrameLayout.LayoutParams(
-                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
-                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(dp20, dp8, dp20, 0) }
-            it.addView(et, lp)
+        val et = EditText(this).apply {
+            hint = "example.com"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
-        AlertDialog.Builder(this)
+        val container = makeDialogContainer(et)
+        MaterialAlertDialogBuilder(this)
             .setTitle("Добавить домен")
             .setView(container)
             .setPositiveButton("Добавить") { _, _ ->
@@ -130,6 +120,18 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("Отмена", null)
             .show()
+    }
+
+    private fun makeDialogContainer(et: EditText): android.widget.FrameLayout {
+        val dp20 = (20 * resources.displayMetrics.density).toInt()
+        val dp12 = (12 * resources.displayMetrics.density).toInt()
+        return android.widget.FrameLayout(this).also {
+            val lp = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(dp20, dp12, dp20, 0) }
+            it.addView(et, lp)
+        }
     }
 
     private fun deleteUrl(group: UrlGroup, entry: UrlEntry) {

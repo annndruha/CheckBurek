@@ -14,9 +14,9 @@ import java.net.Proxy
 
 class NetworkChecker {
     private val client = OkHttpClient.Builder()
-        .callTimeout(java.time.Duration.ofSeconds(5))
-        .connectTimeout(java.time.Duration.ofSeconds(5))
-        .readTimeout(java.time.Duration.ofSeconds(5))
+        .callTimeout(java.time.Duration.ofSeconds(3))
+        .connectTimeout(java.time.Duration.ofSeconds(3))
+        .readTimeout(java.time.Duration.ofSeconds(3))
         .followRedirects(true)
         .build()
 
@@ -91,7 +91,13 @@ class NetworkChecker {
                     if (response.isSuccessful || response.code in 300..399) {
                         times += rtt
                     } else {
-                        lastError = "HTTP ${response.code}: ${response.message}"
+                        if (response.message.isNotBlank())
+                        {
+                            lastError = "HTTP ${response.code}: ${response.message}"
+                        }
+                        else {
+                            lastError = "HTTP ${response.code}"
+                        }
                     }
                 }
             } catch (e: IOException) {

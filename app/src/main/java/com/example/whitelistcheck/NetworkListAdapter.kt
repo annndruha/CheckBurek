@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -95,10 +96,10 @@ class NetworkListAdapter(
     // ──────────────────────────────────────────────
 
     inner class GroupHeaderVH(v: View) : RecyclerView.ViewHolder(v) {
-        private val tvName: TextView  = v.findViewById(R.id.tvGroupName)
-        private val btnCheck: Button  = v.findViewById(R.id.btnCheckGroup)
-        private val btnEdit: Button   = v.findViewById(R.id.btnEditGroup)
-        private val btnDelete: Button = v.findViewById(R.id.btnDeleteGroup)
+        private val tvName: TextView      = v.findViewById(R.id.tvGroupName)
+        private val btnCheck: ImageButton = v.findViewById(R.id.btnCheckGroup)
+        private val btnEdit: ImageButton  = v.findViewById(R.id.btnEditGroup)
+        private val btnDelete: ImageButton = v.findViewById(R.id.btnDeleteGroup)
 
         fun bind(group: UrlGroup) {
             tvName.text = group.name

@@ -45,8 +45,8 @@ class StorageManager(context: Context) {
             urls = mutableListOf(
                 UrlEntry(url = "https://ya.ru"),
                 UrlEntry(url = "https://max.ru"),
-                UrlEntry(url = "https://rzd.ru"),
                 UrlEntry(url = "https://dzen.ru"),
+                UrlEntry(url = "https://rutube.ru"),
                 UrlEntry(url = "https://gosuslugi.ru"),
             )
         ),

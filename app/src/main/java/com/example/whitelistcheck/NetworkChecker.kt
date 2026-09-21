@@ -13,6 +13,7 @@ import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.SocketException
+import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.concurrent.atomic.AtomicReference
 import javax.net.ssl.SSLException
@@ -23,6 +24,12 @@ class NetworkChecker {
         const val METHOD_HEAD = "HEAD"
         const val METHOD_GET  = "GET"
         const val METHOD_PING = "PING"
+
+        private const val CALL_TIMEOUT_S = 12L
+        private const val CONNECT_TIMEOUT_S = 8L
+        private const val READ_TIMEOUT_S = 8L
+        private const val WRITE_TIMEOUT_S = 9L
+        private const val PING_DEADLINE_S = 5
     }
 
     private val userAgents = listOf(
@@ -43,9 +50,10 @@ class NetworkChecker {
     )
 
     private val client = OkHttpClient.Builder()
-        .callTimeout(java.time.Duration.ofSeconds(12))
-        .connectTimeout(java.time.Duration.ofSeconds(8))
-        .readTimeout(java.time.Duration.ofSeconds(8))
+        .callTimeout(java.time.Duration.ofSeconds(CALL_TIMEOUT_S))
+        .connectTimeout(java.time.Duration.ofSeconds(CONNECT_TIMEOUT_S))
+        .readTimeout(java.time.Duration.ofSeconds(READ_TIMEOUT_S))
+        .writeTimeout(java.time.Duration.ofSeconds(WRITE_TIMEOUT_S))
         .followRedirects(true)
         .build()
 
@@ -146,7 +154,7 @@ class NetworkChecker {
     private fun describeError(stage: Stage?, e: IOException): String {
         val reason = when (e) {
             is UnknownHostException -> "Unknown host"
-            is InterruptedIOException -> "Timeout"          // also covers SocketTimeoutException
+            is InterruptedIOException -> timeoutReason(stage, e)   // SocketTimeoutException is a subclass
             is SSLException -> "TLS failure"
             is ConnectException -> connectReason(e)
             is SocketException -> "Socket error"
@@ -157,6 +165,18 @@ class NetworkChecker {
         return "[$head] $details"
     }
 
+    /**
+     * Names the OkHttp timeout that fired. Call timeout surfaces as a plain InterruptedIOException,
+     * the per-socket ones as SocketTimeoutException; the stage tells which of those it was
+     * (the TLS handshake is bounded by the read timeout).
+     */
+    private fun timeoutReason(stage: Stage?, e: InterruptedIOException): String = when {
+        e !is SocketTimeoutException -> "Call timeout (${CALL_TIMEOUT_S}s)"
+        stage == Stage.TCP -> "Connect timeout (${CONNECT_TIMEOUT_S}s)"
+        stage == Stage.REQUEST -> "Write timeout (${WRITE_TIMEOUT_S}s)"
+        else -> "Read timeout (${READ_TIMEOUT_S}s)"
+    }
+
     // ──────────────────────────────────────────────
     //  ICMP Ping
     // ──────────────────────────────────────────────
@@ -165,7 +185,7 @@ class NetworkChecker {
         val start = SystemClock.elapsedRealtime()
         var process: Process? = null
         return try {
-            process = Runtime.getRuntime().exec(arrayOf("ping", "-c", "1", "-w", "5", host))
+            process = Runtime.getRuntime().exec(arrayOf("ping", "-c", "1", "-w", PING_DEADLINE_S.toString(), host))
             val output = process.inputStream.bufferedReader().readText()
             val exitCode = process.waitFor()
             val elapsed = SystemClock.elapsedRealtime() - start
@@ -176,7 +196,12 @@ class NetworkChecker {
                     ?.groupValues?.get(1)?.toDoubleOrNull()?.toLong() ?: elapsed
                 CheckState.Success(0, timeMs)
             } else {
-                CheckState.Failure(null, "[Host unreachable (ICMP)]", elapsed)
+                // Exit code 1 = no reply within the deadline, unless ping itself reported "unreachable"
+                val reason = if (exitCode == 1 && !output.contains("unreachable", ignoreCase = true))
+                    "Ping timeout (${PING_DEADLINE_S}s)"
+                else
+                    "Host unreachable (ICMP)"
+                CheckState.Failure(null, "[$reason]", elapsed)
             }
         } catch (e: Exception) {
             val details = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName

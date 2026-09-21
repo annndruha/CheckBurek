@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAddUrlDialog(group: UrlGroup) {
         val et = EditText(this).apply {
-            hint = "example.com"
+            hint = "https://example.com"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
         MaterialAlertDialogBuilder(this)

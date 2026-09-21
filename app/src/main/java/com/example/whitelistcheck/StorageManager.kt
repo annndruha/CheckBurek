@@ -52,7 +52,7 @@ class StorageManager(context: Context) {
         ),
         UrlGroup(
             id = UUID.randomUUID().toString(),
-            name = "Незаблокированные ресурсы",
+            name = "Обычный интернет",
             urls = mutableListOf(
                 UrlEntry(url = "https://google.com"),
                 UrlEntry(url = "https://apple.com"),
@@ -63,7 +63,7 @@ class StorageManager(context: Context) {
         ),
         UrlGroup(
             id = UUID.randomUUID().toString(),
-            name = "Заблокированные ресурсы",
+            name = "Запрещённый интернет",
             urls = mutableListOf(
                 UrlEntry(url = "https://telegram.org"),
                 UrlEntry(url = "https://youtube.com"),

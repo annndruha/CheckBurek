@@ -8,8 +8,14 @@ import okhttp3.Call
 import okhttp3.EventListener
 import okhttp3.Protocol
 import okhttp3.Response
+import java.io.InterruptedIOException
+import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.Proxy
+import java.net.SocketException
+import java.net.UnknownHostException
+import java.util.concurrent.atomic.AtomicReference
+import javax.net.ssl.SSLException
 
 class NetworkChecker {
 
@@ -81,13 +87,19 @@ class NetworkChecker {
 
     private fun httpAttempt(url: String, useGet: Boolean): CheckState {
         val timing = mutableMapOf<String, Long>()
+        val stage = AtomicReference<Stage?>(null)
         val listener = object : EventListener() {
+            override fun dnsStart(call: Call, domainName: String) { stage.set(Stage.DNS) }
             override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
+                stage.set(Stage.TCP)
                 timing["connectStart"] = SystemClock.elapsedRealtime()
             }
+            override fun secureConnectStart(call: Call) { stage.set(Stage.TLS) }
             override fun connectEnd(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy, protocol: Protocol?) {
                 timing["connectEnd"] = SystemClock.elapsedRealtime()
             }
+            override fun requestHeadersStart(call: Call) { stage.set(Stage.REQUEST) }
+            override fun responseHeadersStart(call: Call) { stage.set(Stage.RESPONSE) }
             override fun responseHeadersEnd(call: Call, response: Response) {
                 timing["responseEnd"] = SystemClock.elapsedRealtime()
             }
@@ -118,7 +130,34 @@ class NetworkChecker {
                 }
             }
         } catch (e: IOException) {
-            CheckState.Failure(null, e.message ?: "Ошибка соединения", 0)
+            CheckState.Failure(null, describeError(stage.get(), e), 0)
+        }
+    }
+
+    private enum class Stage(val label: String) {
+        DNS("DNS"),
+        TCP("TCP-соединение"),
+        TLS("TLS-рукопожатие"),
+        REQUEST("отправка запроса"),
+        RESPONSE("получение ответа"),
+    }
+
+    /** Builds "<stage>: <reason> — <details>" so the UI shows where the request broke. */
+    private fun describeError(stage: Stage?, e: IOException): String {
+        val reason = when (e) {
+            is UnknownHostException -> "хост не найден"
+            is InterruptedIOException -> "таймаут"          // also covers SocketTimeoutException
+            is SSLException -> "ошибка TLS"
+            is ConnectException -> "соединение отклонено или сеть недоступна"
+            is SocketException -> "соединение разорвано"
+            else -> null
+        }
+        val details = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+        val head = listOfNotNull(stage?.label, reason).joinToString(": ")
+        return when {
+            head.isEmpty() -> details
+            reason == null -> "$head: $details"
+            else -> "$head — $details"
         }
     }
 

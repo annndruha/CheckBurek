@@ -70,7 +70,7 @@ class NetworkChecker {
             }
         }
 
-        return lastFailure ?: CheckState.Failure(null, "Ошибка соединения", 0)
+        return lastFailure ?: CheckState.Failure(null, "[Connection error]", 0)
     }
 
     // ──────────────────────────────────────────────
@@ -124,8 +124,8 @@ class NetworkChecker {
                 if (response.isSuccessful || response.code in 300..399) {
                     CheckState.Success(response.code, rtt)
                 } else {
-                    val msg = if (response.message.isNotBlank()) "HTTP ${response.code}: ${response.message}"
-                              else "HTTP ${response.code}"
+                    val msg = if (response.message.isNotBlank()) "[HTTP ${response.code}] ${response.message}"
+                              else "[HTTP ${response.code}]"
                     CheckState.Failure(response.code, msg, rtt)
                 }
             }
@@ -136,29 +136,25 @@ class NetworkChecker {
 
     private enum class Stage(val label: String) {
         DNS("DNS"),
-        TCP("TCP-соединение"),
-        TLS("TLS-рукопожатие"),
-        REQUEST("отправка запроса"),
-        RESPONSE("получение ответа"),
+        TCP("TCP connect"),
+        TLS("TLS handshake"),
+        REQUEST("HTTP request"),
+        RESPONSE("HTTP response"),
     }
 
-    /** Builds "<stage>: <reason> — <details>" so the UI shows where the request broke. */
+    /** Builds "[<stage>: <reason>] <details>" so the UI shows where the request broke. */
     private fun describeError(stage: Stage?, e: IOException): String {
         val reason = when (e) {
-            is UnknownHostException -> "хост не найден"
-            is InterruptedIOException -> "таймаут"          // also covers SocketTimeoutException
-            is SSLException -> "ошибка TLS"
-            is ConnectException -> "соединение отклонено или сеть недоступна"
-            is SocketException -> "соединение разорвано"
+            is UnknownHostException -> "Unknown host"
+            is InterruptedIOException -> "Timeout"          // also covers SocketTimeoutException
+            is SSLException -> "TLS failure"
+            is ConnectException -> connectReason(e)
+            is SocketException -> "Socket error"
             else -> null
         }
         val details = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
-        val head = listOfNotNull(stage?.label, reason).joinToString(": ")
-        return when {
-            head.isEmpty() -> details
-            reason == null -> "$head: $details"
-            else -> "$head — $details"
-        }
+        val head = listOfNotNull(stage?.label, reason).joinToString(": ").ifEmpty { "Connection error" }
+        return "[$head] $details"
     }
 
     // ──────────────────────────────────────────────
@@ -180,12 +176,24 @@ class NetworkChecker {
                     ?.groupValues?.get(1)?.toDoubleOrNull()?.toLong() ?: elapsed
                 CheckState.Success(0, timeMs)
             } else {
-                CheckState.Failure(null, "Хост недоступен (ICMP)", elapsed)
+                CheckState.Failure(null, "[Host unreachable (ICMP)]", elapsed)
             }
         } catch (e: Exception) {
-            CheckState.Failure(null, e.message ?: "Ошибка ping", SystemClock.elapsedRealtime() - start)
+            val details = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+            CheckState.Failure(null, "[Ping error] $details", SystemClock.elapsedRealtime() - start)
         } finally {
             process?.destroy()
+        }
+    }
+
+    /** Distinguishes the errno behind a ConnectException by its message (e.g. "...: ECONNREFUSED (Connection refused)"). */
+    private fun connectReason(e: ConnectException): String {
+        val text = "${e.message} ${e.cause?.message}"
+        return when {
+            "ECONNREFUSED" in text || "refused" in text -> "Connection refused"
+            "ENETUNREACH" in text || "Network is unreachable" in text -> "Network unreachable"
+            "EHOSTUNREACH" in text || "No route to host" in text -> "Host unreachable"
+            else -> "Connect failed"
         }
     }
 

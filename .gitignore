@@ -1,4 +1,5 @@
 release/
+.kotlin
 
 *.iml
 .gradle

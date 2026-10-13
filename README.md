@@ -1,6 +1,8 @@
 # Android app for ping sites
 # Приложение для проверки сайтов на доступность
 
+APK можно скачать в ассетах релиза: https://github.com/annndruha/CheckBurek/releases
+
 Фишки:
 * ICMP ping
 * HTTP HEAD/GET (equal chain: dns + tcp + tls + http)
